@@ -1,6 +1,7 @@
 import { useCallback } from "react";
 import { useJsExecutor } from "./useJsExecutor";
 import { usePhpExecutor } from "./usePhpExecutor";
+import { usePythonExecutor } from "./usePythonExecutor";
 
 export interface CodeOutput {
   type: "output" | "error" | "info" | "image";
@@ -17,6 +18,7 @@ export interface LanguageExecutor {
 export function useCodeExecutor() {
   const { executeJs } = useJsExecutor();
   const { executePhp, isLoading: phpLoading } = usePhpExecutor();
+  const { executePython, isLoading: pythonLoading } = usePythonExecutor();
 
   const execute = useCallback(
     async (
@@ -32,12 +34,7 @@ export function useCodeExecutor() {
         case "php":
           return executePhp(code, onLoadProgress);
         case "python":
-          return [
-            {
-              type: "error",
-              content: `Python support not yet implemented`,
-            },
-          ];
+          return executePython(code, onProgress, onLoadProgress);
         case "java":
           return [
             {
@@ -61,7 +58,7 @@ export function useCodeExecutor() {
           ];
       }
     },
-    [executeJs, executePhp]
+    [executeJs, executePhp, executePython]
   );
 
   const isLoading = useCallback(
@@ -69,11 +66,13 @@ export function useCodeExecutor() {
       switch (language) {
         case "php":
           return phpLoading;
+        case "python":
+          return pythonLoading;
         default:
           return false;
       }
     },
-    [phpLoading]
+    [phpLoading, pythonLoading]
   );
 
   return { execute, isLoading };
