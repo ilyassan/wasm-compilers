@@ -1,36 +1,116 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# WASM Compilers
+
+An open-source, browser-based code compiler and playground that supports multiple programming languages using WebAssembly and cloud execution APIs.
+
+## Features
+
+- **Multi-Language Support**: JavaScript, PHP, Python, Java, and C
+- **Browser-Based Execution**: No server setup required - everything runs in your browser
+- **Monaco Editor**: Full-featured code editor with syntax highlighting and IntelliSense
+- **Real-Time Console**: See your code output immediately
+- **Tab Management**: Work on multiple files simultaneously
+- **Resizable Layout**: Adjust editor and console panel sizes to your preference
+- **Mobile Responsive**: Works on desktop and mobile devices
+
+## Supported Languages
+
+### JavaScript
+- Runs directly in the browser using Web Workers
+- Sandboxed execution environment
+- Supports async/await and modern ES features
+
+### PHP
+- Powered by [php-wasm](https://github.com/seanmorris/php-wasm)
+- Full PHP 8.x support
+- Runs entirely in the browser
+
+### Python
+- Powered by [Pyodide](https://pyodide.org/)
+- Supports popular packages: NumPy, Pandas, Matplotlib, SciPy, and more
+- Automatic package installation
+- Matplotlib plot rendering
+
+### Java
+- Uses the Piston API for compilation and execution
+- Java 15 support
+- Full standard library access
+
+### C
+- Uses the Piston API for compilation and execution
+- GCC 10.2.0 support
+- Standard C library included
 
 ## Getting Started
 
-First, run the development server:
+### Installation
+
+```bash
+npm install
+```
+
+### Development
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Build
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm run build
+npm start
+```
 
-## Learn More
+## Technology Stack
 
-To learn more about Next.js, take a look at the following resources:
+- **Framework**: Next.js 15
+- **Language**: TypeScript
+- **Styling**: Tailwind CSS
+- **Editor**: Monaco Editor
+- **UI Components**: Radix UI
+- **Icons**: React Icons
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Usage
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+1. Select a programming language from the dropdown
+2. Write your code in the Monaco editor
+3. Click "Run" to execute
+4. View output in the console panel
+5. Use tabs to work on multiple files
 
-## Deploy on Vercel
+## Architecture
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+The project follows a modular architecture with separate executor hooks for each language:
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- `useJsExecutor`: JavaScript execution using Web Workers
+- `usePhpExecutor`: PHP execution using php-wasm
+- `usePythonExecutor`: Python execution using Pyodide
+- `useJavaExecutor`: Java execution using Piston API
+- `useCExecutor`: C execution using Piston API
+
+## Contributing
+
+Contributions are welcome! Feel free to:
+
+- Report bugs
+- Suggest new features
+- Submit pull requests
+- Improve documentation
+
+## License
+
+MIT License - feel free to use this project for personal or commercial purposes.
+
+## Credits
+
+- Built with inspiration from online code playgrounds
+- PHP support: [php-wasm](https://github.com/seanmorris/php-wasm)
+- Python support: [Pyodide](https://pyodide.org/)
+- Java/C support: [Piston API](https://github.com/engineer-man/piston)
+- Editor: [Monaco Editor](https://microsoft.github.io/monaco-editor/)
+
+---
+
+Made with ❤️ by the open-source community
