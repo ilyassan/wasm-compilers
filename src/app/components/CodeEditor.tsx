@@ -466,7 +466,7 @@ export default function CodeEditor() {
         ))}
         <button
           onClick={handleAddTab}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-secondary/70 to-secondary hover:from-secondary-light hover:to-secondary-light text-gress transition-all duration-300 text-sm font-medium shadow-md hover:shadow-lg hover:scale-105"
+          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-secondary/70 to-secondary hover:from-secondary-light hover:to-secondary-light text-gress transition-all duration-300 text-sm font-medium shadow-md hover:shadow-lg"
         >
           <Plus className="w-4 h-4" />
           New File
