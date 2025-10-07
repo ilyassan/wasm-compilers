@@ -9,6 +9,7 @@ An open-source, browser-based code compiler and playground that supports multipl
 - **Monaco Editor**: Full-featured code editor with syntax highlighting and IntelliSense
 - **Real-Time Console**: See your code output immediately
 - **Tab Management**: Work on multiple files simultaneously
+- **Persistent Storage**: Your code and tabs are automatically saved and restored
 - **Resizable Layout**: Adjust editor and console panel sizes to your preference
 - **Mobile Responsive**: Works on desktop and mobile devices
 
@@ -93,12 +94,78 @@ The project follows a modular architecture with separate executor hooks for each
 
 ## Contributing
 
-Contributions are welcome! Feel free to:
+We love contributions! Here's how you can help make WASM Compilers even better:
 
-- Report bugs
-- Suggest new features
-- Submit pull requests
-- Improve documentation
+### How to Contribute
+
+1. **Fork the Repository**
+   - Click the "Fork" button at the top right of this repository
+   - Clone your fork locally:
+     ```bash
+     git clone https://github.com/YOUR_USERNAME/wasm-compilers.git
+     cd wasm-compilers
+     ```
+
+2. **Create a Feature Branch**
+   ```bash
+   git checkout -b feature/your-feature-name
+   ```
+
+   Use descriptive branch names:
+   - `feature/add-rust-support` for new features
+   - `fix/python-matplotlib-bug` for bug fixes
+   - `docs/update-readme` for documentation
+   - `refactor/improve-executor-hooks` for refactoring
+
+3. **Make Your Changes**
+   - Write clean, maintainable code
+   - Follow the existing code style
+   - Test your changes thoroughly
+   - Add comments where necessary
+
+4. **Commit Your Changes**
+   ```bash
+   git add .
+   git commit -m "feat: add your feature description"
+   ```
+
+   Use conventional commit messages:
+   - `feat:` for new features
+   - `fix:` for bug fixes
+   - `docs:` for documentation changes
+   - `refactor:` for code refactoring
+   - `style:` for formatting changes
+   - `test:` for adding tests
+
+5. **Push to Your Fork**
+   ```bash
+   git push origin feature/your-feature-name
+   ```
+
+6. **Create a Pull Request**
+   - Go to the original repository
+   - Click "New Pull Request"
+   - Select your fork and branch
+   - Provide a clear description of your changes
+   - Link any related issues
+
+### What You Can Contribute
+
+- 🐛 **Report bugs** - Found something broken? Let us know!
+- 💡 **Suggest features** - Have ideas for improvements? Share them!
+- 🔧 **Fix issues** - Check out our open issues and submit a fix
+- 📝 **Improve documentation** - Help others understand the project better
+- 🌐 **Add language support** - Want to add a new programming language?
+- 🎨 **Enhance UI/UX** - Make the interface more beautiful and intuitive
+- ⚡ **Performance improvements** - Help make it faster!
+
+### Need Help?
+
+- Check existing issues and pull requests first
+- Feel free to ask questions in issues
+- Join discussions and share your ideas
+
+All contributions, big or small, are greatly appreciated! 🙏
 
 ## License
 
