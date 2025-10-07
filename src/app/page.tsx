@@ -4,27 +4,27 @@ import CodeEditor from "./components/CodeEditor";
 
 export default function Home() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-dark via-secondary to-dark p-4 md:p-8">
-      <div className="max-w-[1600px] mx-auto space-y-6">
-        <div className="mb-8 bg-secondary/50 backdrop-blur-sm p-6 rounded-xl border border-secondary-light shadow-xl">
-          <div className="flex items-start justify-between gap-4">
-            <div className="flex-1">
-              <h1 className="text-4xl font-bold bg-gradient-to-r from-light via-gray to-light bg-clip-text text-transparent">
+    <div className="min-h-screen bg-gradient-to-br from-dark via-secondary to-dark p-3 sm:p-4 md:p-8">
+      <div className="max-w-[1600px] mx-auto space-y-3 sm:space-y-4 md:space-y-6">
+        <div className="mb-4 md:mb-8 bg-secondary/50 backdrop-blur-sm p-4 md:p-6 rounded-xl border border-secondary-light shadow-xl">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex-1 min-w-0">
+              <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold bg-gradient-to-r from-light via-gray to-light bg-clip-text text-transparent">
                 WASM Compilers
               </h1>
-              <p className="text-gress mt-2 text-sm md:text-base">
-                Write and execute JavaScript, PHP, Python, Java, and C code directly in your browser
+              <p className="text-gress mt-1 md:mt-2 text-xs sm:text-sm md:text-base">
+                Write and execute code directly in your browser
               </p>
             </div>
             <a
               href="https://github.com/ilyassan/wasm-compilers"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-gress hover:text-light transition-colors"
+              className="text-gress hover:text-light transition-colors flex-shrink-0"
               aria-label="View on GitHub"
             >
               <svg
-                className="w-8 h-8"
+                className="w-7 h-7 sm:w-8 sm:h-8"
                 fill="currentColor"
                 viewBox="0 0 24 24"
                 xmlns="http://www.w3.org/2000/svg"

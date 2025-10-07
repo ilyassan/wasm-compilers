@@ -424,13 +424,13 @@ export default function CodeEditor() {
   }, [tabs, activeTabId, language]);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3 sm:space-y-4">
       {/* Language Selector and Actions */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-5 bg-gradient-to-br from-secondary/80 to-secondary/50 rounded-xl border border-secondary-light shadow-lg backdrop-blur-sm transition-all duration-300 hover:shadow-xl">
-        <div className="flex items-center gap-4 flex-wrap">
-          <label className="text-light text-sm font-semibold tracking-wide">Language:</label>
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 sm:gap-4 p-3 sm:p-5 bg-gradient-to-br from-secondary/80 to-secondary/50 rounded-xl border border-secondary-light shadow-lg backdrop-blur-sm transition-all duration-300 hover:shadow-xl">
+        <div className="flex items-center gap-2 sm:gap-4 flex-wrap">
+          <label className="text-light text-xs sm:text-sm font-semibold tracking-wide">Language:</label>
           <Select value={language} onValueChange={handleLanguageChange}>
-            <SelectTrigger className="w-44 bg-gradient-to-r from-secondary to-secondary-light border-secondary-light text-light font-medium shadow-md transition-all duration-300 rounded-lg">
+            <SelectTrigger className="w-32 sm:w-44 bg-gradient-to-r from-secondary to-secondary-light border-secondary-light text-light font-medium shadow-md transition-all duration-300 rounded-lg text-sm">
               <SelectValue />
             </SelectTrigger>
             <SelectContent className="rounded-lg shadow-xl border-secondary-light">
@@ -443,6 +443,40 @@ export default function CodeEditor() {
           </Select>
 
           {/* Runtime Loading Progress Inline */}
+          <div className="hidden sm:block">
+            <RuntimeLoadingProgress
+              language={language}
+              isLoading={isLoadingRuntime}
+              progress={loadingProgress}
+              message={loadingMessage}
+            />
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 sm:gap-3">
+          <Button
+            onClick={clearConsole}
+            variant="outline"
+            size="sm"
+            className="gap-1 sm:gap-2 bg-gradient-to-r from-secondary to-secondary-light border-secondary-light hover:border-red-400/50 hover:bg-red-500/10 shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105 rounded-lg font-medium text-xs sm:text-sm flex-1 sm:flex-none"
+          >
+            <Trash2 className="w-3 h-3 sm:w-4 sm:h-4" />
+            <span className="hidden xs:inline">Clear</span>
+          </Button>
+
+          <Button
+            onClick={handleRunCode}
+            disabled={isRunning || isLoadingRuntime}
+            className="gap-1 sm:gap-2 bg-gradient-to-r from-accent to-accent/80 hover:from-accent/90 hover:to-accent/70 shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105 rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 text-xs sm:text-sm flex-1 sm:flex-none"
+            size="sm"
+          >
+            <Play className="w-3 h-3 sm:w-4 sm:h-4" />
+            {isLoadingRuntime ? "Loading..." : isRunning ? "Running..." : "Run"}
+          </Button>
+        </div>
+
+        {/* Mobile Runtime Loading Progress */}
+        <div className="block sm:hidden w-full">
           <RuntimeLoadingProgress
             language={language}
             isLoading={isLoadingRuntime}
@@ -450,38 +484,16 @@ export default function CodeEditor() {
             message={loadingMessage}
           />
         </div>
-
-        <div className="flex items-center gap-3">
-          <Button
-            onClick={clearConsole}
-            variant="outline"
-            size="sm"
-            className="gap-2 bg-gradient-to-r from-secondary to-secondary-light border-secondary-light hover:border-red-400/50 hover:bg-red-500/10 shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105 rounded-lg font-medium"
-          >
-            <Trash2 className="w-4 h-4" />
-            Clear
-          </Button>
-
-          <Button
-            onClick={handleRunCode}
-            disabled={isRunning || isLoadingRuntime}
-            className="gap-2 bg-gradient-to-r from-accent to-accent/80 hover:from-accent/90 hover:to-accent/70 shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105 rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
-            size="sm"
-          >
-            <Play className="w-4 h-4" />
-            {isLoadingRuntime ? "Loading Runtime..." : isRunning ? "Running..." : "Run"}
-          </Button>
-        </div>
       </div>
 
       {/* Files */}
-      <div className="flex items-center gap-2 overflow-x-auto bg-gradient-to-r from-secondary/40 to-secondary/30 p-3 rounded-xl border border-secondary-light shadow-md backdrop-blur-sm">
+      <div className="flex items-center gap-2 overflow-x-auto bg-gradient-to-r from-secondary/40 to-secondary/30 p-2 sm:p-3 rounded-xl border border-secondary-light shadow-md backdrop-blur-sm scrollbar-thin scrollbar-thumb-secondary-light scrollbar-track-transparent">
         {currentTabs.map((tab) => (
           <div
             key={tab.id}
             onClick={() => handleTabChange(tab.id)}
             onDoubleClick={() => setEditingTabId(tab.id)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg cursor-pointer transition-all duration-300 group relative overflow-hidden ${
+            className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg cursor-pointer transition-all duration-300 group relative overflow-hidden flex-shrink-0 ${
               activeTabId[language] === tab.id
                 ? "bg-gradient-to-r from-accent to-accent/80 text-white shadow-lg scale-105 font-medium"
                 : "bg-secondary/70 hover:bg-secondary-light text-gress hover:shadow-md hover:scale-102"
@@ -503,12 +515,12 @@ export default function CodeEditor() {
                 }}
                 autoFocus
                 onClick={(e) => e.stopPropagation()}
-                className={`bg-transparent border-none outline-none text-sm w-24 relative z-10 ${
+                className={`bg-transparent border-none outline-none text-xs sm:text-sm w-20 sm:w-24 relative z-10 ${
                   activeTabId[language] === tab.id ? "text-white" : "text-gress"
                 }`}
               />
             ) : (
-              <span className="text-sm select-none relative z-10">{tab.name}</span>
+              <span className="text-xs sm:text-sm select-none relative z-10 whitespace-nowrap">{tab.name}</span>
             )}
             {currentTabs.length > 1 && (
               <button
@@ -518,17 +530,17 @@ export default function CodeEditor() {
                 }}
                 className="opacity-0 group-hover:opacity-100 transition-all duration-300 hover:text-red-400 hover:rotate-90 relative z-10 hover:scale-110"
               >
-                <X className="w-4 h-4" />
+                <X className="w-3 h-3 sm:w-4 sm:h-4" />
               </button>
             )}
           </div>
         ))}
         <button
           onClick={handleAddTab}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-secondary/70 to-secondary hover:from-secondary-light hover:to-secondary-light text-gress transition-all duration-300 text-sm font-medium shadow-md hover:shadow-lg"
+          className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg bg-gradient-to-r from-secondary/70 to-secondary hover:from-secondary-light hover:to-secondary-light text-gress transition-all duration-300 text-xs sm:text-sm font-medium shadow-md hover:shadow-lg flex-shrink-0 whitespace-nowrap"
         >
-          <Plus className="w-4 h-4" />
-          New File
+          <Plus className="w-3 h-3 sm:w-4 sm:h-4" />
+          <span className="hidden sm:inline">New File</span>
         </button>
       </div>
 
@@ -570,7 +582,7 @@ export default function CodeEditor() {
       </div>
 
       {/* Mobile Layout - Stack vertically */}
-      <div className="flex lg:hidden flex-col gap-4 h-[600px]">
+      <div className="flex lg:hidden flex-col gap-3 sm:gap-4 h-[calc(100vh-400px)] min-h-[500px] max-h-[700px]">
         <div className="h-1/2 rounded-xl overflow-hidden shadow-xl border border-secondary-light/50">
           <EditorPanel
             language={language}
