@@ -117,6 +117,8 @@ const createDefaultTab = (language: Language, index: number = 1): Tab => ({
   consoleOutput: [],
 });
 
+const STORAGE_KEY = 'wasm-compiler-state';
+
 export default function CodeEditor() {
   // Get language from URL query parameter, default to javascript
   const searchParams = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '');
@@ -125,21 +127,62 @@ export default function CodeEditor() {
     ? urlLanguage
     : "javascript";
 
-  const [language, setLanguage] = useState<Language>(initialLanguage);
-  const [tabs, setTabs] = useState<LanguageTabs>({
-    javascript: [createDefaultTab("javascript")],
-    php: [createDefaultTab("php")],
-    python: [createDefaultTab("python")],
-    java: [createDefaultTab("java")],
-    c: [createDefaultTab("c")],
-  });
-  const [activeTabId, setActiveTabId] = useState<Record<Language, string>>({
-    javascript: tabs.javascript[0].id,
-    php: tabs.php[0].id,
-    python: tabs.python[0].id,
-    java: tabs.java[0].id,
-    c: tabs.c[0].id,
-  });
+  // Load saved state from localStorage or use defaults
+  const loadInitialState = () => {
+    if (typeof window === 'undefined') {
+      return {
+        tabs: {
+          javascript: [createDefaultTab("javascript")],
+          php: [createDefaultTab("php")],
+          python: [createDefaultTab("python")],
+          java: [createDefaultTab("java")],
+          c: [createDefaultTab("c")],
+        },
+        activeTabId: {} as Record<Language, string>,
+        language: initialLanguage,
+      };
+    }
+
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return {
+          tabs: parsed.tabs,
+          activeTabId: parsed.activeTabId,
+          language: urlLanguage || parsed.language || initialLanguage,
+        };
+      }
+    } catch (error) {
+      console.error('Failed to load saved state:', error);
+    }
+
+    const defaultTabs = {
+      javascript: [createDefaultTab("javascript")],
+      php: [createDefaultTab("php")],
+      python: [createDefaultTab("python")],
+      java: [createDefaultTab("java")],
+      c: [createDefaultTab("c")],
+    };
+
+    return {
+      tabs: defaultTabs,
+      activeTabId: {
+        javascript: defaultTabs.javascript[0].id,
+        php: defaultTabs.php[0].id,
+        python: defaultTabs.python[0].id,
+        java: defaultTabs.java[0].id,
+        c: defaultTabs.c[0].id,
+      },
+      language: initialLanguage,
+    };
+  };
+
+  const initialState = loadInitialState();
+
+  const [language, setLanguage] = useState<Language>(initialState.language);
+  const [tabs, setTabs] = useState<LanguageTabs>(initialState.tabs);
+  const [activeTabId, setActiveTabId] = useState<Record<Language, string>>(initialState.activeTabId);
   const [isRunning, setIsRunning] = useState(false);
   const [isLoadingRuntime, setIsLoadingRuntime] = useState(false);
   const [loadingProgress, setLoadingProgress] = useState(0);
@@ -363,6 +406,22 @@ export default function CodeEditor() {
       window.removeEventListener('mouseup', handleMouseUp);
     };
   }, [isResizing, handleMouseMove, handleMouseUp]);
+
+  // Save state to localStorage whenever tabs, activeTabId, or language changes
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    try {
+      const stateToSave = {
+        tabs,
+        activeTabId,
+        language,
+      };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(stateToSave));
+    } catch (error) {
+      console.error('Failed to save state:', error);
+    }
+  }, [tabs, activeTabId, language]);
 
   return (
     <div className="space-y-4">
