@@ -1,6 +1,6 @@
 # WASM Compilers
 
-An open-source, browser-based code compiler and playground that supports multiple programming languages using WebAssembly and cloud execution APIs.
+An open-source, browser-based code compiler and playground that supports multiple programming languages using WebAssembly. All code execution happens entirely in your browser - no backend servers or external APIs required!
 
 ## Features
 
@@ -31,14 +31,15 @@ An open-source, browser-based code compiler and playground that supports multipl
 - Matplotlib plot rendering
 
 ### Java
-- Uses the Piston API for compilation and execution
-- Java 15 support
-- Full standard library access
+- Powered by [CheerpJ](https://leaningtech.com/cheerpj/)
+- Java bytecode execution in WebAssembly
+- Runs entirely in the browser
 
 ### C
-- Uses the Piston API for compilation and execution
-- GCC 10.2.0 support
-- Standard C library included
+- Powered by [WCC (WebAssembly C Compiler)](https://github.com/tyfkda/xcc)
+- Compiles C to WebAssembly
+- Runs entirely in the browser
+- Full C standard library support
 
 ## Getting Started
 
@@ -87,8 +88,8 @@ The project follows a modular architecture with separate executor hooks for each
 - `useJsExecutor`: JavaScript execution using Web Workers
 - `usePhpExecutor`: PHP execution using php-wasm
 - `usePythonExecutor`: Python execution using Pyodide
-- `useJavaExecutor`: Java execution using Piston API
-- `useCExecutor`: C execution using Piston API
+- `useJavaExecutor`: Java execution using CheerpJ (WebAssembly)
+- `useCExecutor`: C compilation and execution using WCC (WebAssembly)
 
 ## Contributing
 
@@ -108,9 +109,12 @@ MIT License - feel free to use this project for personal or commercial purposes.
 - Built with inspiration from online code playgrounds
 - PHP support: [php-wasm](https://github.com/seanmorris/php-wasm)
 - Python support: [Pyodide](https://pyodide.org/)
-- Java/C support: [Piston API](https://github.com/engineer-man/piston)
+- Java support: [CheerpJ](https://leaningtech.com/cheerpj/)
+- C support: [WCC (WebAssembly C Compiler)](https://github.com/tyfkda/xcc)
 - Editor: [Monaco Editor](https://microsoft.github.io/monaco-editor/)
 
 ---
 
-Made with ❤️ by the open-source community
+Made by [Ilyass Anida](https://github.com/ilyassan) for the open-source community
+
+Special thanks to all the amazing open-source compiler projects that made this possible: php-wasm, Pyodide, CheerpJ, and WCC. This project wouldn't exist without their incredible work!
