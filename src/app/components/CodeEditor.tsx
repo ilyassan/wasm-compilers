@@ -4,7 +4,7 @@ import { useState, useRef, useCallback, useEffect } from "react";
 import { useCodeExecutor, type Language } from "../hooks/useCodeExecutor";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { HiPlay, HiTrash, HiChevronLeft, HiChevronRight, HiPlus, HiX } from "react-icons/hi";
+import { Play, Trash2, ChevronLeft, ChevronRight, Plus, X } from "lucide-react";
 import EditorPanel from "./EditorPanel";
 import ConsolePanel from "./ConsolePanel";
 import RuntimeLoadingProgress from "./RuntimeLoadingProgress";
@@ -356,19 +356,19 @@ export default function CodeEditor() {
   return (
     <div className="space-y-4">
       {/* Language Selector and Actions */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 bg-secondary/50 rounded-lg border border-secondary-light">
-        <div className="flex items-center gap-3 flex-wrap">
-          <label className="text-light text-sm font-medium">Language:</label>
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-5 bg-gradient-to-br from-secondary/80 to-secondary/50 rounded-xl border border-secondary-light shadow-lg backdrop-blur-sm transition-all duration-300 hover:shadow-xl">
+        <div className="flex items-center gap-4 flex-wrap">
+          <label className="text-light text-sm font-semibold tracking-wide">Language:</label>
           <Select value={language} onValueChange={handleLanguageChange}>
-            <SelectTrigger className="w-40 bg-secondary border-secondary-light text-light">
+            <SelectTrigger className="w-44 bg-gradient-to-r from-secondary to-secondary-light border-secondary-light text-light font-medium shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105 rounded-lg">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="javascript">JavaScript</SelectItem>
-              <SelectItem value="php">PHP</SelectItem>
-              <SelectItem value="python">Python</SelectItem>
-              <SelectItem value="java">Java</SelectItem>
-              <SelectItem value="c">C</SelectItem>
+            <SelectContent className="rounded-lg shadow-xl border-secondary-light">
+              <SelectItem value="javascript" className="cursor-pointer hover:bg-accent/20 rounded-md transition-colors">JavaScript</SelectItem>
+              <SelectItem value="php" className="cursor-pointer hover:bg-accent/20 rounded-md transition-colors">PHP</SelectItem>
+              <SelectItem value="python" className="cursor-pointer hover:bg-accent/20 rounded-md transition-colors">Python</SelectItem>
+              <SelectItem value="java" className="cursor-pointer hover:bg-accent/20 rounded-md transition-colors">Java</SelectItem>
+              <SelectItem value="c" className="cursor-pointer hover:bg-accent/20 rounded-md transition-colors">C</SelectItem>
             </SelectContent>
           </Select>
 
@@ -381,42 +381,45 @@ export default function CodeEditor() {
           />
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           <Button
             onClick={clearConsole}
             variant="outline"
             size="sm"
-            className="gap-2"
+            className="gap-2 bg-gradient-to-r from-secondary to-secondary-light border-secondary-light hover:border-red-400/50 hover:bg-red-500/10 shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105 rounded-lg font-medium"
           >
-            <HiTrash className="w-4 h-4" />
+            <Trash2 className="w-4 h-4" />
             Clear
           </Button>
 
           <Button
             onClick={handleRunCode}
             disabled={isRunning || isLoadingRuntime}
-            className="gap-2 bg-accent hover:bg-accent/90"
+            className="gap-2 bg-gradient-to-r from-accent to-accent/80 hover:from-accent/90 hover:to-accent/70 shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105 rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
             size="sm"
           >
-            <HiPlay className="w-4 h-4" />
+            <Play className="w-4 h-4" />
             {isLoadingRuntime ? "Loading Runtime..." : isRunning ? "Running..." : "Run"}
           </Button>
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="flex items-center gap-2 overflow-x-auto bg-secondary/30 p-2 rounded-lg border border-secondary-light">
+      <div className="flex items-center gap-2 overflow-x-auto bg-gradient-to-r from-secondary/40 to-secondary/30 p-3 rounded-xl border border-secondary-light shadow-md backdrop-blur-sm">
         {currentTabs.map((tab) => (
           <div
             key={tab.id}
             onClick={() => handleTabChange(tab.id)}
             onDoubleClick={() => setEditingTabId(tab.id)}
-            className={`flex items-center gap-2 px-3 py-1.5 rounded cursor-pointer transition-colors group ${
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg cursor-pointer transition-all duration-300 group relative overflow-hidden ${
               activeTabId[language] === tab.id
-                ? "bg-accent text-white"
-                : "bg-secondary hover:bg-secondary-light text-gress"
+                ? "bg-gradient-to-r from-accent to-accent/80 text-white shadow-lg scale-105 font-medium"
+                : "bg-secondary/70 hover:bg-secondary-light text-gress hover:shadow-md hover:scale-102"
             }`}
           >
+            <div className={`absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700 ${
+              activeTabId[language] === tab.id ? "opacity-100" : "opacity-50"
+            }`}></div>
             {editingTabId === tab.id ? (
               <input
                 type="text"
@@ -430,12 +433,12 @@ export default function CodeEditor() {
                 }}
                 autoFocus
                 onClick={(e) => e.stopPropagation()}
-                className={`bg-transparent border-none outline-none text-sm w-24 ${
+                className={`bg-transparent border-none outline-none text-sm w-24 relative z-10 ${
                   activeTabId[language] === tab.id ? "text-white" : "text-gress"
                 }`}
               />
             ) : (
-              <span className="text-sm select-none">{tab.name}</span>
+              <span className="text-sm select-none relative z-10">{tab.name}</span>
             )}
             {currentTabs.length > 1 && (
               <button
@@ -443,18 +446,18 @@ export default function CodeEditor() {
                   e.stopPropagation();
                   handleCloseTab(tab.id);
                 }}
-                className="opacity-0 group-hover:opacity-100 transition-opacity hover:text-red-400"
+                className="opacity-0 group-hover:opacity-100 transition-all duration-300 hover:text-red-400 hover:rotate-90 relative z-10 hover:scale-110"
               >
-                <HiX className="w-3.5 h-3.5" />
+                <X className="w-4 h-4" />
               </button>
             )}
           </div>
         ))}
         <button
           onClick={handleAddTab}
-          className="flex items-center gap-1 px-3 py-1.5 rounded bg-secondary hover:bg-secondary-light text-gress transition-colors text-sm"
+          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-secondary/70 to-secondary hover:from-secondary-light hover:to-secondary-light text-gress transition-all duration-300 text-sm font-medium shadow-md hover:shadow-lg hover:scale-105"
         >
-          <HiPlus className="w-4 h-4" />
+          <Plus className="w-4 h-4" />
           New Tab
         </button>
       </div>
@@ -462,11 +465,11 @@ export default function CodeEditor() {
       {/* Editor and Console */}
       <div
         ref={containerRef}
-        className="hidden lg:flex h-[600px] relative"
+        className="hidden lg:flex h-[600px] relative rounded-xl overflow-hidden shadow-2xl border border-secondary-light/50"
         style={{ userSelect: isResizing ? 'none' : 'auto' }}
       >
         {/* Editor Panel */}
-        <div style={{ width: `${editorWidth}%` }} className="h-full">
+        <div style={{ width: `${editorWidth}%` }} className="h-full rounded-l-xl overflow-hidden shadow-lg">
           <EditorPanel
             language={language}
             code={currentActiveTab.content}
@@ -478,27 +481,27 @@ export default function CodeEditor() {
         {/* Resizable Divider */}
         <div
           onMouseDown={handleMouseDown}
-          className="w-1 bg-secondary-light hover:bg-accent transition-colors cursor-col-resize flex items-center justify-center group relative"
+          className="w-1 bg-gradient-to-b from-secondary-light via-secondary to-secondary-light hover:bg-gradient-to-b hover:from-accent hover:via-accent/80 hover:to-accent transition-all duration-300 cursor-col-resize flex items-center justify-center group relative"
         >
-          <div className="absolute inset-y-0 -left-1 -right-1 flex items-center justify-center">
-            <div className="bg-secondary-light group-hover:bg-accent transition-colors rounded-full p-1">
+          <div className="absolute inset-y-0 -left-2 -right-2 flex items-center justify-center">
+            <div className="bg-gradient-to-r from-secondary-light to-secondary group-hover:from-accent group-hover:to-accent/80 transition-all duration-300 rounded-full p-1.5 shadow-lg group-hover:shadow-xl group-hover:scale-110">
               <div className="flex items-center">
-                <HiChevronLeft className="w-3 h-3 text-light -mr-1" />
-                <HiChevronRight className="w-3 h-3 text-light -ml-1" />
+                <ChevronLeft className="w-3 h-3 text-light -mr-1" />
+                <ChevronRight className="w-3 h-3 text-light -ml-1" />
               </div>
             </div>
           </div>
         </div>
 
         {/* Console Panel */}
-        <div style={{ width: `${100 - editorWidth}%` }} className="h-full">
+        <div style={{ width: `${100 - editorWidth}%` }} className="h-full rounded-r-xl overflow-hidden shadow-lg">
           <ConsolePanel outputs={currentActiveTab.consoleOutput} />
         </div>
       </div>
 
       {/* Mobile Layout - Stack vertically */}
       <div className="flex lg:hidden flex-col gap-4 h-[600px]">
-        <div className="h-1/2">
+        <div className="h-1/2 rounded-xl overflow-hidden shadow-xl border border-secondary-light/50">
           <EditorPanel
             language={language}
             code={currentActiveTab.content}
@@ -506,7 +509,7 @@ export default function CodeEditor() {
             onMount={handleEditorDidMount}
           />
         </div>
-        <div className="h-1/2">
+        <div className="h-1/2 rounded-xl overflow-hidden shadow-xl border border-secondary-light/50">
           <ConsolePanel outputs={currentActiveTab.consoleOutput} />
         </div>
       </div>

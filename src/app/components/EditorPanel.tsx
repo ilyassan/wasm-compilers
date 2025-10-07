@@ -1,7 +1,7 @@
 "use client";
 
 import Editor from "@monaco-editor/react";
-import { HiCode } from "react-icons/hi";
+import { Loader2 } from "lucide-react";
 
 type Language = "javascript" | "php" | "python" | "java" | "c";
 
@@ -30,7 +30,7 @@ const getMonacoLanguage = (language: Language): string => {
 
 export default function EditorPanel({ language, code, onChange, onMount }: EditorPanelProps) {
   return (
-    <div className="h-full w-full">
+    <div className="h-full w-full rounded-lg overflow-hidden border border-secondary-light shadow-lg">
       <Editor
         height="100%"
         language={getMonacoLanguage(language)}
@@ -41,7 +41,7 @@ export default function EditorPanel({ language, code, onChange, onMount }: Edito
         options={{
           minimap: { enabled: true },
           fontSize: 14,
-          fontFamily: "'Fira Code', 'Cascadia Code', Consolas, monospace",
+          fontFamily: "'Fira Code', 'JetBrains Mono', 'Cascadia Code', Consolas, monospace",
           lineNumbers: "on",
           roundedSelection: true,
           scrollBeyondLastLine: false,
@@ -53,14 +53,18 @@ export default function EditorPanel({ language, code, onChange, onMount }: Edito
           suggestOnTriggerCharacters: true,
           quickSuggestions: true,
           parameterHints: { enabled: true },
+          padding: { top: 16, bottom: 16 },
         }}
         loading={
           <div className="flex items-center justify-center w-full h-full bg-[#1e1e1e]">
-            <div className="text-center">
-              <div className="inline-flex items-center justify-center w-16 h-16 mb-4">
-                <HiCode className="w-12 h-12 text-accent animate-pulse" />
+            <div className="text-center space-y-4">
+              <div className="inline-flex items-center justify-center w-16 h-16 bg-accent/10 rounded-full">
+                <Loader2 className="w-8 h-8 text-accent animate-spin" />
               </div>
-              <p className="text-light text-sm font-medium mb-1">Loading Editor...</p>
+              <div className="space-y-2">
+                <p className="text-light text-sm font-medium">Loading Editor...</p>
+                <p className="text-gress text-xs">Preparing your coding environment</p>
+              </div>
             </div>
           </div>
         }
