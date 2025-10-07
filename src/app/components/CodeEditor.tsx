@@ -99,9 +99,20 @@ int main() {
 }`,
 };
 
+const getFileName = (language: Language): string => {
+  switch (language) {
+    case "javascript": return "script.js";
+    case "php": return "index.php";
+    case "python": return "main.py";
+    case "java": return "Main.java";
+    case "c": return "main.c";
+    default: return "file";
+  }
+};
+
 const createDefaultTab = (language: Language, index: number = 1): Tab => ({
   id: `${language}-${Date.now()}-${index}`,
-  name: `${language === "javascript" ? "script" : language === "php" ? "index.php" : language === "python" ? "main.py" : language === "java" ? "Main.java" : language === "c" ? "main.c" : "file"}`,
+  name: getFileName(language),
   content: DEFAULT_CODE[language],
   consoleOutput: [],
 });
@@ -360,7 +371,7 @@ export default function CodeEditor() {
         <div className="flex items-center gap-4 flex-wrap">
           <label className="text-light text-sm font-semibold tracking-wide">Language:</label>
           <Select value={language} onValueChange={handleLanguageChange}>
-            <SelectTrigger className="w-44 bg-gradient-to-r from-secondary to-secondary-light border-secondary-light text-light font-medium shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105 rounded-lg">
+            <SelectTrigger className="w-44 bg-gradient-to-r from-secondary to-secondary-light border-secondary-light text-light font-medium shadow-md transition-all duration-300 rounded-lg">
               <SelectValue />
             </SelectTrigger>
             <SelectContent className="rounded-lg shadow-xl border-secondary-light">
@@ -404,7 +415,7 @@ export default function CodeEditor() {
         </div>
       </div>
 
-      {/* Tabs */}
+      {/* Files */}
       <div className="flex items-center gap-2 overflow-x-auto bg-gradient-to-r from-secondary/40 to-secondary/30 p-3 rounded-xl border border-secondary-light shadow-md backdrop-blur-sm">
         {currentTabs.map((tab) => (
           <div
@@ -458,7 +469,7 @@ export default function CodeEditor() {
           className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-secondary/70 to-secondary hover:from-secondary-light hover:to-secondary-light text-gress transition-all duration-300 text-sm font-medium shadow-md hover:shadow-lg hover:scale-105"
         >
           <Plus className="w-4 h-4" />
-          New Tab
+          New File
         </button>
       </div>
 
