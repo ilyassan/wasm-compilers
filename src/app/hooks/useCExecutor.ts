@@ -11,8 +11,7 @@ export function useCExecutor() {
   const executeC = useCallback(
     async (
       code: string,
-      onProgress?: (message: string, type: "info" | "error") => void,
-      onLoadProgress?: (progress: number, message: string) => void
+      onProgress?: (message: string, type: "info" | "error") => void
     ): Promise<COutput[]> => {
       const outputs: COutput[] = [];
 

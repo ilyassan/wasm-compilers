@@ -24,6 +24,7 @@ export default function ConsolePanel({ outputs }: ConsolePanelProps) {
             if (output.type === "image") {
               return (
                 <div key={`${output.timestamp}-${index}`} className="mb-4">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={`data:image/png;base64,${output.content}`}
                     alt="Matplotlib plot"

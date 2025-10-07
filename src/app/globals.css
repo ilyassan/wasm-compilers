@@ -33,11 +33,9 @@
 }
 
 @layer base {
-  * {
-    @apply border-border;
-  }
   body {
-    @apply bg-dark text-light;
+    background-color: #161A1D;
+    color: #DEE2E6;
     font-family: Arial, Helvetica, sans-serif;
   }
 }

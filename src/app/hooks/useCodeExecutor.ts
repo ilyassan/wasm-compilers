@@ -42,7 +42,7 @@ export function useCodeExecutor() {
         case "java":
           return executeJava(code, onProgress, onLoadProgress, filename);
         case "c":
-          return executeC(code, onProgress, onLoadProgress);
+          return executeC(code, onProgress);
         default:
           return [
             {
