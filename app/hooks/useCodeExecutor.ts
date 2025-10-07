@@ -2,6 +2,8 @@ import { useCallback } from "react";
 import { useJsExecutor } from "./useJsExecutor";
 import { usePhpExecutor } from "./usePhpExecutor";
 import { usePythonExecutor } from "./usePythonExecutor";
+import { useJavaExecutor } from "./useJavaExecutor";
+import { useCExecutor } from "./useCExecutor";
 
 export interface CodeOutput {
   type: "output" | "error" | "info" | "image";
@@ -19,6 +21,8 @@ export function useCodeExecutor() {
   const { executeJs } = useJsExecutor();
   const { executePhp, isLoading: phpLoading } = usePhpExecutor();
   const { executePython, isLoading: pythonLoading } = usePythonExecutor();
+  const { executeJava, isLoading: javaLoading } = useJavaExecutor();
+  const { executeC, isLoading: cLoading } = useCExecutor();
 
   const execute = useCallback(
     async (
@@ -36,19 +40,9 @@ export function useCodeExecutor() {
         case "python":
           return executePython(code, onProgress, onLoadProgress);
         case "java":
-          return [
-            {
-              type: "error",
-              content: `Java support not yet implemented`,
-            },
-          ];
+          return executeJava(code, onProgress, onLoadProgress, filename);
         case "c":
-          return [
-            {
-              type: "error",
-              content: `C support not yet implemented`,
-            },
-          ];
+          return executeC(code, onProgress, onLoadProgress);
         default:
           return [
             {
@@ -58,7 +52,7 @@ export function useCodeExecutor() {
           ];
       }
     },
-    [executeJs, executePhp, executePython]
+    [executeJs, executePhp, executePython, executeJava, executeC]
   );
 
   const isLoading = useCallback(
@@ -68,11 +62,15 @@ export function useCodeExecutor() {
           return phpLoading;
         case "python":
           return pythonLoading;
+        case "java":
+          return javaLoading;
+        case "c":
+          return cLoading;
         default:
           return false;
       }
     },
-    [phpLoading, pythonLoading]
+    [phpLoading, pythonLoading, javaLoading, cLoading]
   );
 
   return { execute, isLoading };
