@@ -5,42 +5,61 @@ interface JavaOutput {
   content: string;
 }
 
-const loadCheerpJScript = async (): Promise<void> => {
-  if (typeof window === "undefined") return;
+const TEAVM_BASE_URL = "/teavm";
 
-  // Check if already loaded
-  if (typeof cheerpjInit !== "undefined") {
-    return;
+const loadTeaVMRuntime = async (): Promise<NonNullable<Window["teavmCompiler"]>> => {
+  if (typeof window === "undefined") {
+    throw new Error("TeaVM can only run in browser environment");
   }
 
-  // Dynamically load the CheerpJ script
-  return new Promise<void>((resolve, reject) => {
+  // Check if already loaded
+  if (window.teavmCompiler) {
+    return window.teavmCompiler;
+  }
+
+  // Load the TeaVM compiler WASM runtime using script tag
+  return new Promise((resolve, reject) => {
     const script = document.createElement("script");
-    script.src = "https://cjrtnc.leaningtech.com/4.2/loader.js";
-    script.async = true;
+    script.type = "module";
+    script.textContent = `
+      import { load } from "${TEAVM_BASE_URL}/compiler.wasm-runtime.js";
 
-    script.onload = () => {
-      // Wait a bit for cheerpjInit to become available
-      const checkInterval = setInterval(() => {
-        if (typeof cheerpjInit !== "undefined") {
-          clearInterval(checkInterval);
-          resolve();
-        }
-      }, 50);
+      (async function() {
+        try {
+          const teavm = await load("${TEAVM_BASE_URL}/compiler.wasm", {
+            stackDeobfuscator: {
+              enabled: true
+            }
+          });
 
-      setTimeout(() => {
-        clearInterval(checkInterval);
-        if (typeof cheerpjInit !== "undefined") {
-          resolve();
-        } else {
-          reject(new Error("CheerpJ initialization timeout"));
+          window.teavmCompiler = teavm;
+          window.dispatchEvent(new CustomEvent('teavm-loaded'));
+        } catch (error) {
+          console.error("TeaVM load error:", error);
+          window.dispatchEvent(new CustomEvent('teavm-error', { detail: error }));
         }
-      }, 10000);
+      })();
+    `;
+
+    const handleLoad = () => {
+      window.removeEventListener('teavm-loaded', handleLoad);
+      window.removeEventListener('teavm-error', handleError as EventListener);
+      if (!window.teavmCompiler) {
+        reject(new Error("TeaVM compiler not found after loading"));
+        return;
+      }
+      resolve(window.teavmCompiler);
     };
 
-    script.onerror = () => {
-      reject(new Error("Failed to load CheerpJ script"));
+    const handleError = (event: Event) => {
+      window.removeEventListener('teavm-loaded', handleLoad);
+      window.removeEventListener('teavm-error', handleError as EventListener);
+      const customEvent = event as CustomEvent;
+      reject(customEvent.detail || new Error("Failed to load TeaVM runtime"));
     };
+
+    window.addEventListener('teavm-loaded', handleLoad);
+    window.addEventListener('teavm-error', handleError as EventListener);
 
     document.head.appendChild(script);
   });
@@ -52,60 +71,28 @@ export function useJavaExecutor() {
   const isInitialized = useRef(false);
   const isLoadingCheerpJ = useRef(false);
 
-  const loadCheerpJ = useCallback(async () => {
+  const loadTeaVM = useCallback(async () => {
     // If already initialized or loading, return
     if (isInitialized.current || isLoadingCheerpJ.current) return;
 
     isLoadingCheerpJ.current = true;
-    console.log("Starting to load CheerpJ...");
+    console.log("Starting to load TeaVM...");
 
     try {
-      // Dynamically load CheerpJ script
-      await loadCheerpJScript();
-      console.log("CheerpJ script loaded, initializing...");
+      // Load TeaVM compiler WASM runtime
+      const teavmCompiler = await loadTeaVMRuntime();
+      console.log("TeaVM runtime loaded successfully");
 
-      // Initialize CheerpJ with status: 'none' to suppress output
-      await cheerpjInit({
-        status: "none",
-      });
-
-      console.log("CheerpJ initialized, running dummy code to trigger asset download...");
-
-      // Run a simple dummy Java code to trigger all asset downloads
-      const dummyCode = `public class Dummy {
-    public static void main(String[] args) {
-        System.out.println("init");
-    }
-}`;
-
-      const consoleElement = document.createElement("pre");
-      consoleElement.id = "console-dummy";
-      consoleElement.style.position = "fixed";
-      consoleElement.style.left = "-9999px";
-      document.body.appendChild(consoleElement);
-
-      try {
-        cheerpOSAddStringFile("/str/Dummy.java", dummyCode);
-        await cheerpjRunMain(
-          "com.sun.tools.javac.Main",
-          "/app/tools.jar:/files/",
-          "/str/Dummy.java",
-          "-d",
-          "/files/"
-        );
-        await cheerpjRunMain("Dummy", "/app/tools.jar:/files/");
-        console.log("Dummy execution complete, all assets downloaded");
-      } finally {
-        if (consoleElement.parentNode) {
-          consoleElement.parentNode.removeChild(consoleElement);
-        }
+      // Store the TeaVM compiler instance for later use
+      if (!window.teavmCompiler) {
+        window.teavmCompiler = teavmCompiler;
       }
 
-      console.log("CheerpJ fully initialized and ready");
+      console.log("TeaVM fully initialized and ready");
       isInitialized.current = true;
       setIsNativeReady(true);
     } catch (error) {
-      console.warn("Failed to load CheerpJ, will continue using API:", error);
+      console.warn("Failed to load TeaVM, will continue using API:", error);
       isLoadingCheerpJ.current = false;
     }
   }, []);
@@ -216,6 +203,7 @@ export function useJavaExecutor() {
       onProgress?: (message: string, type: "info" | "error") => void
     ): Promise<JavaOutput[]> => {
       const outputs: JavaOutput[] = [];
+      let stdoutBuffer = "";
 
       try {
         const mainClass = deriveMainClass(code);
@@ -223,117 +211,141 @@ export function useJavaExecutor() {
           ? mainClass.split(".").pop()! + ".java"
           : mainClass + ".java";
 
-        // Create console and output elements
-        let consoleElement = document.getElementById("console") as HTMLPreElement | null;
-        let outputElement = document.getElementById("output") as HTMLDivElement | null;
-        const cleanupElements: HTMLElement[] = [];
+        onProgress?.(`Compiling ${fileName}...`, "info");
 
-        if (!consoleElement) {
-          consoleElement = document.createElement("pre");
-          consoleElement.id = "console";
-          consoleElement.style.position = "fixed";
-          consoleElement.style.left = "-9999px";
-          consoleElement.style.top = "-9999px";
-          document.body.appendChild(consoleElement);
-          cleanupElements.push(consoleElement);
-        } else {
-          consoleElement.innerHTML = "";
+        // Get TeaVM compiler instance
+        const teavmModule = window.teavmCompiler;
+        if (!teavmModule) {
+          throw new Error("TeaVM compiler not initialized");
         }
 
-        if (!outputElement) {
-          outputElement = document.createElement("div");
-          outputElement.id = "output";
-          outputElement.style.position = "fixed";
-          outputElement.style.left = "-9999px";
-          outputElement.style.top = "-9999px";
-          document.body.appendChild(outputElement);
-          cleanupElements.push(outputElement);
-        } else {
-          outputElement.innerHTML = "";
-        }
+        const compilerLib = teavmModule.exports;
+        const compiler = compilerLib.createCompiler();
 
-        try {
-          cheerpOSAddStringFile(`/str/${fileName}`, code);
+        // Load classlibs (they should be cached after first load)
+        const [sdkData, teavmClasslibData] = await Promise.all([
+          fetch(`${TEAVM_BASE_URL}/compile-classlib-teavm.bin`).then((r) =>
+            r.arrayBuffer()
+          ),
+          fetch(`${TEAVM_BASE_URL}/runtime-classlib-teavm.bin`).then((r) =>
+            r.arrayBuffer()
+          ),
+        ]);
 
-          onProgress?.(`Compiling ${fileName}...`, "info");
+        compiler.setSdk(new Int8Array(sdkData));
+        compiler.setTeaVMClasslib(new Int8Array(teavmClasslibData));
 
-          const classPath = "/app/tools.jar:/files/";
-          const sourceFile = `/str/${fileName}`;
+        // Add source file
+        compiler.addSourceFile(fileName, code);
 
-          const compileCode = await cheerpjRunMain(
-            "com.sun.tools.javac.Main",
-            classPath,
-            sourceFile,
-            "-d",
-            "/files/"
-          );
-
-          const compileOutput = consoleElement.innerText || "";
-
-          if (compileCode !== 0) {
-            outputs.push({
-              type: "error",
-              content: compileOutput || "Compilation failed",
-            });
-          } else {
-            consoleElement.innerHTML = "";
-
-            onProgress?.(`Running ${mainClass}...`, "info");
-            const runCode = await cheerpjRunMain(mainClass, classPath);
-
-            const runtimeOutput = consoleElement.innerText || "";
-            const displayOutput = outputElement.innerText || "";
-
-            const allOutput = [runtimeOutput, displayOutput]
-              .filter((o) => o.trim())
-              .join("\n");
-
-            if (allOutput) {
-              outputs.push({
-                type: "output",
-                content: allOutput,
-              });
-            } else {
-              outputs.push({
-                type: "output",
-                content: "(no output)",
-              });
-            }
-
-            if (runCode !== 0) {
-              outputs.push({
-                type: "info",
-                content: `Program exited with code ${runCode}`,
-              });
-            }
+        // Collect diagnostics
+        const diagnostics: string[] = [];
+        compiler.onDiagnostic((diagnostic: Parameters<Parameters<ReturnType<NonNullable<Window["teavmCompiler"]>["exports"]["createCompiler"]>["onDiagnostic"]>[0]>[0]) => {
+          if (diagnostic.severity === "ERROR") {
+            diagnostics.push(`${diagnostic.message}`);
           }
+        });
 
-          cleanupElements.forEach((el) => {
-            if (el.parentNode) {
-              el.parentNode.removeChild(el);
-            }
-          });
+        // Compile
+        const compileSuccess = compiler.compile();
 
-          return outputs;
-        } catch (error) {
-          cleanupElements.forEach((el) => {
-            if (el.parentNode) {
-              el.parentNode.removeChild(el);
-            }
-          });
-
-          const errorMessage = error instanceof Error ? error.message : String(error);
+        if (!compileSuccess || diagnostics.length > 0) {
           outputs.push({
             type: "error",
-            content: `Java execution error: ${errorMessage}`,
+            content: diagnostics.join("\n") || "Compilation failed",
           });
           return outputs;
         }
+
+        onProgress?.(`Running ${mainClass}...`, "info");
+
+        // Generate WebAssembly
+        compiler.generateWebAssembly({
+          outputName: "app",
+          mainClass: mainClass,
+        });
+
+        // Get the generated WASM file
+        const generatedWasm = compiler.getWebAssemblyOutputFile("app.wasm");
+
+        // Load and run the generated WASM using the runtime loader
+        const outputTeavm = await new Promise<NonNullable<Window["teavmCompiler"]>>((resolve, reject) => {
+          const script = document.createElement("script");
+          script.type = "module";
+          script.textContent = `
+            import { load } from "${TEAVM_BASE_URL}/compiler.wasm-runtime.js";
+
+            (async function() {
+              try {
+                const wasmBytes = new Uint8Array([${Array.from(generatedWasm).join(',')}]);
+                const teavm = await load(wasmBytes, {
+                  stackDeobfuscator: { enabled: false }
+                });
+                window.__teavmOutput = teavm;
+                window.dispatchEvent(new CustomEvent('teavm-output-loaded'));
+              } catch (error) {
+                window.dispatchEvent(new CustomEvent('teavm-output-error', { detail: error }));
+              }
+            })();
+          `;
+
+          const handleLoad = () => {
+            window.removeEventListener('teavm-output-loaded', handleLoad);
+            window.removeEventListener('teavm-output-error', handleError as EventListener);
+            const output = (window as Window & { __teavmOutput?: NonNullable<Window["teavmCompiler"]> }).__teavmOutput;
+            if (!output) {
+              reject(new Error("TeaVM output not found after loading"));
+              return;
+            }
+            resolve(output);
+            delete (window as Window & { __teavmOutput?: NonNullable<Window["teavmCompiler"]> }).__teavmOutput;
+          };
+
+          const handleError = (event: Event) => {
+            window.removeEventListener('teavm-output-loaded', handleLoad);
+            window.removeEventListener('teavm-output-error', handleError as EventListener);
+            const customEvent = event as CustomEvent;
+            reject(customEvent.detail || new Error("Failed to load output WASM"));
+          };
+
+          window.addEventListener('teavm-output-loaded', handleLoad);
+          window.addEventListener('teavm-output-error', handleError as EventListener);
+
+          document.head.appendChild(script);
+        });
+
+        // Capture stdout
+        const originalConsoleLog = console.log;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        console.log = (...args: any[]) => {
+          stdoutBuffer += args.join(" ") + "\n";
+        };
+
+        try {
+          // Run main method
+          await outputTeavm.exports.main([]);
+        } finally {
+          console.log = originalConsoleLog;
+        }
+
+        if (stdoutBuffer) {
+          outputs.push({
+            type: "output",
+            content: stdoutBuffer.trim(),
+          });
+        } else {
+          outputs.push({
+            type: "output",
+            content: "(no output)",
+          });
+        }
+
+        return outputs;
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : "Unknown error";
         outputs.push({
           type: "error",
-          content: `Java Error: ${errorMessage}`,
+          content: `Java execution error: ${errorMessage}`,
         });
         return outputs;
       }
@@ -351,10 +363,10 @@ export function useJavaExecutor() {
       try {
         setIsLoading(true);
 
-        // Start loading CheerpJ in background on first run (if not already loaded/loading)
+        // Start loading TeaVM in background on first run (if not already loaded/loading)
         if (!isNativeReady && !isLoadingCheerpJ.current) {
-          console.log("First Java run - triggering CheerpJ download in background");
-          loadCheerpJ(); // Fire and forget - runs in background
+          console.log("First Java run - triggering TeaVM download in background");
+          loadTeaVM(); // Fire and forget - runs in background
         }
 
         // Always report 100% - no loading indicators for hybrid approach
@@ -362,7 +374,7 @@ export function useJavaExecutor() {
 
         // ONLY use native if BOTH flags confirm it's fully ready
         if (isNativeReady && isInitialized.current) {
-          console.log("Using browser execution");
+          console.log("Using TeaVM browser execution");
           return await executeJavaNative(code, onProgress);
         } else {
           console.log("Using API execution", { isNativeReady, isInitialized: isInitialized.current, isLoading: isLoadingCheerpJ.current });
@@ -373,7 +385,7 @@ export function useJavaExecutor() {
         setIsLoading(false);
       }
     },
-    [isNativeReady, executeJavaNative, executeJavaAPI, loadCheerpJ]
+    [isNativeReady, executeJavaNative, executeJavaAPI, loadTeaVM]
   );
 
   return { executeJava, isLoading };
