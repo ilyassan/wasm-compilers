@@ -1,198 +1,191 @@
-import { useState, useCallback, useRef } from "react";
-import type { PhpWebConstructor, PhpWebInstance } from "@/types/php-wasm";
+import { useState, useCallback, useRef, useEffect } from "react";
 
 interface PhpOutput {
   type: "output" | "error";
   content: string;
 }
 
-// Dynamically load and wait for php-wasm from CDN
-const waitForPhpWasm = async (
-  onProgress?: (progress: number, message: string) => void
-): Promise<PhpWebConstructor | null> => {
-  if (typeof window === "undefined") return null;
+class PhpWorker {
+  private worker: Worker | null = null;
+  private messageId = 0;
+  private actionHandlerMap = new Map<
+    number,
+    { resolve: (value: unknown) => void; reject: (error: unknown) => void }
+  >();
+  private isSetup = false;
 
-  // Check if already loaded
-  if (window.PhpWebClass) {
-    return window.PhpWebClass;
+  async initWorker() {
+    if (typeof window === "undefined") return;
+
+    try {
+      // Create worker from the public directory
+      const workerUrl = "/php.worker.js";
+      this.worker = new Worker(workerUrl, { type: "module" });
+
+      this.worker.onmessage = (event) => {
+        const data = event.data;
+
+        // Handle ready message
+        if (data.action === "ready") {
+          return;
+        }
+
+        if (data.messageId != null && this.actionHandlerMap.has(data.messageId)) {
+          const handler = this.actionHandlerMap.get(data.messageId)!;
+          this.actionHandlerMap.delete(data.messageId);
+          if (data.error != null) {
+            handler.reject(new Error(data.error));
+          } else {
+            handler.resolve(data.result);
+          }
+        }
+      };
+
+      this.worker.onerror = (error) => {
+        console.error("Worker error:", error);
+      };
+    } catch (error) {
+      console.error("Failed to initialize worker:", error);
+      throw error;
+    }
   }
 
-  onProgress?.(5, "Downloading PHP WASM");
-  onProgress?.(15, "Loading PHP runtime");
+  async setUp(onProgress?: (progress: number, message: string) => void) {
+    if (this.isSetup) return;
 
-  // Dynamically load the PHP WASM module using Function constructor to avoid build-time resolution
-  return Promise.race([
-    new Promise<PhpWebConstructor>(async (resolve, reject) => {
-      try {
-        // Use Function constructor to create dynamic import that won't be analyzed at build time
-        const dynamicImport = new Function('url', 'return import(url)');
-        const phpModule = await dynamicImport('https://cdn.jsdelivr.net/npm/php-wasm/PhpWeb.mjs');
-        window.PhpWebClass = phpModule.PhpWeb;
+    onProgress?.(5, "Downloading PHP WASM");
 
-        if (window.PhpWebClass) {
-          onProgress?.(60, "PHP WASM loaded");
-          // Small delay to show progress
-          await new Promise(r => setTimeout(r, 100));
-          onProgress?.(100, "PHP runtime ready");
-          resolve(window.PhpWebClass);
-        } else {
-          reject(new Error('PhpWeb class not available after loading'));
-        }
-      } catch (error) {
-        reject(new Error(`Failed to load PHP WASM: ${error instanceof Error ? error.message : 'Unknown error'}`));
-      }
-    }),
-    new Promise<PhpWebConstructor>((_, reject) =>
-      setTimeout(() => reject(new Error('PHP WASM loading timeout. Please refresh the page.')), 30000)
-    )
-  ]);
-};
+    // Initialize worker
+    await this.initWorker();
+
+    onProgress?.(30, "Loading PHP runtime");
+
+    // Initialize PHP in the worker
+    await this.postMessage("init", {});
+
+    onProgress?.(100, "PHP runtime ready");
+
+    this.isSetup = true;
+  }
+
+  async execute(code: string): Promise<{ success: boolean; outputs?: PhpOutput[]; error?: string }> {
+    const result = (await this.postMessage("execute", {
+      code,
+    })) as { success: boolean; outputs?: PhpOutput[]; error?: string };
+
+    return result;
+  }
+
+  private postMessage(action: string, params: Record<string, unknown> = {}): Promise<unknown> {
+    return new Promise((resolve, reject) => {
+      const messageId = ++this.messageId;
+      this.actionHandlerMap.set(messageId, { resolve, reject });
+      params.action = action;
+      params.messageId = messageId;
+      this.worker?.postMessage(params);
+    });
+  }
+
+  terminate() {
+    this.worker?.terminate();
+  }
+}
 
 export function usePhpExecutor() {
   const [isLoading, setIsLoading] = useState(false);
-  const phpInstanceRef = useRef<PhpWebInstance | null>(null);
-  const executionPromiseRef = useRef<Promise<PhpOutput[]> | null>(null);
+  const [isInitialized, setIsInitialized] = useState(false);
+  const workerRef = useRef<PhpWorker | null>(null);
+  const isInitializing = useRef(false);
+
+  // Lazy initialization - only when needed
+  const initWorker = useCallback(async (onLoadProgress?: (progress: number, message: string) => void) => {
+    if (typeof window === "undefined") return;
+
+    // If already initialized or initializing, return
+    if (isInitialized || isInitializing.current) {
+      // Wait for initialization to complete if in progress
+      if (isInitializing.current && !isInitialized) {
+        await new Promise<void>((resolve) => {
+          const checkInterval = setInterval(() => {
+            if (isInitialized || !isInitializing.current) {
+              clearInterval(checkInterval);
+              resolve();
+            }
+          }, 100);
+        });
+      }
+      return;
+    }
+
+    isInitializing.current = true;
+
+    try {
+      setIsLoading(true);
+      workerRef.current = new PhpWorker();
+      await workerRef.current.setUp(onLoadProgress);
+      setIsInitialized(true);
+    } catch (error) {
+      console.error("Failed to initialize PHP worker:", error);
+      isInitializing.current = false;
+      throw error;
+    } finally {
+      setIsLoading(false);
+      isInitializing.current = false;
+    }
+  }, [isInitialized]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      workerRef.current?.terminate();
+    };
+  }, []);
 
   const executePhp = useCallback(async (
     code: string,
     onLoadProgress?: (progress: number, message: string) => void
   ): Promise<PhpOutput[]> => {
-    // If there's already an execution in progress, wait for it or return
-    if (executionPromiseRef.current) {
-      return executionPromiseRef.current;
-    }
-
-    const executeAsync = async (): Promise<PhpOutput[]> => {
-      const outputs: PhpOutput[] = [];
-
-      try {
-        setIsLoading(true);
-
-        // Wait for PHP WASM to load and initialize
-        if (!phpInstanceRef.current) {
-          const PhpWeb = await waitForPhpWasm(onLoadProgress);
-          if (!PhpWeb) {
-            throw new Error("PHP runtime not available");
-          }
-
-          // Create PHP instance and wait for it to initialize
-          const php = new PhpWeb();
-
-          // Wait for WASM to be ready - PhpWeb emits 'ready' event when initialized
-          if (typeof php.addEventListener !== 'function') {
-            await Promise.race([
-              new Promise<void>((resolve) => {
-                // Poll for addEventListener existence (indicates WASM loaded)
-                const interval = setInterval(() => {
-                  if (typeof php.addEventListener === 'function') {
-                    clearInterval(interval);
-                    resolve();
-                  }
-                }, 50);
-              }),
-              new Promise<void>((_, reject) =>
-                setTimeout(() => reject(new Error('WASM initialization timeout')), 10000)
-              )
-            ]);
-          }
-
-          phpInstanceRef.current = php;
-        }
-
-        const php = phpInstanceRef.current;
-
-        // Wrap execution in a promise that can be run asynchronously
-        const executeInBackground = () => {
-          return new Promise<PhpOutput[]>((resolve, reject) => {
-            // Use setTimeout to defer execution and prevent blocking
-            setTimeout(async () => {
-              try {
-                // Capture output using event listeners
-                const outputLines: string[] = [];
-                const errorLines: string[] = [];
-
-                // Set up output listeners
-                const handleOutput = (event: CustomEvent<string>) => {
-                  if (event.detail) {
-                    outputLines.push(event.detail);
-                  }
-                };
-
-                const handleError = (event: CustomEvent<string>) => {
-                  if (event.detail) {
-                    errorLines.push(event.detail);
-                  }
-                };
-
-                php.addEventListener('output', handleOutput);
-                php.addEventListener('error', handleError);
-
-                try {
-                  // Refresh PHP instance to clear previous state (prevents redeclaration errors)
-                  if (php.refresh) {
-                    php.refresh();
-                  }
-
-                  // Run PHP code - output is captured via event listeners
-                  await php.run(code);
-
-                  // Clean up listeners immediately (output is already captured)
-                  php.removeEventListener('output', handleOutput);
-                  php.removeEventListener('error', handleError);
-
-                  // Add outputs
-                  if (outputLines.length > 0) {
-                    outputs.push({
-                      type: "output",
-                      content: outputLines.join(''),
-                    });
-                  }
-
-                  if (errorLines.length > 0) {
-                    outputs.push({
-                      type: "error",
-                      content: errorLines.join(''),
-                    });
-                  }
-
-                  if (outputLines.length === 0 && errorLines.length === 0) {
-                    outputs.push({
-                      type: "output",
-                      content: "(no output)",
-                    });
-                  }
-
-                  resolve(outputs);
-                } catch (runError) {
-                  php.removeEventListener('output', handleOutput);
-                  php.removeEventListener('error', handleError);
-                  reject(runError);
-                }
-              } catch (error) {
-                reject(error);
-              }
-            }, 0);
-          });
-        };
-
-        return await executeInBackground();
-
-      } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : "Unknown error";
-        outputs.push({
-          type: "error",
-          content: `PHP Error: ${errorMessage}`,
-        });
-        return outputs;
-      } finally {
-        setIsLoading(false);
-        executionPromiseRef.current = null;
+    try {
+      // Initialize worker if not already initialized
+      if (!workerRef.current) {
+        onLoadProgress?.(5, "Initializing PHP runtime");
+        await initWorker(onLoadProgress);
       }
-    };
 
-    executionPromiseRef.current = executeAsync();
-    return executionPromiseRef.current;
-  }, []);
+      // After initialization, check if worker is ready
+      if (!workerRef.current) {
+        return [{
+          type: "error",
+          content: "PHP runtime failed to initialize",
+        }];
+      }
 
-  return { executePhp, isLoading };
+      setIsLoading(true);
+      onLoadProgress?.(100, "PHP runtime ready");
+
+      const worker = workerRef.current;
+
+      // Execute in the worker (off main thread!)
+      const result = await worker.execute(code);
+
+      if (!result.success) {
+        return [{
+          type: "error",
+          content: result.error || "PHP execution failed",
+        }];
+      }
+
+      return result.outputs || [];
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      return [{
+        type: "error",
+        content: `PHP Error: ${errorMessage}`,
+      }];
+    } finally {
+      setIsLoading(false);
+    }
+  }, [initWorker]);
+
+  return { executePhp, isLoading, isInitialized };
 }

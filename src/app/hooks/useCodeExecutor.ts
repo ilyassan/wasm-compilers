@@ -29,8 +29,7 @@ export function useCodeExecutor() {
       language: Language,
       code: string,
       onProgress?: (message: string, type: "info" | "error") => void,
-      onLoadProgress?: (progress: number, message: string) => void,
-      filename?: string
+      onLoadProgress?: (progress: number, message: string) => void
     ): Promise<CodeOutput[]> => {
       switch (language) {
         case "javascript":
@@ -40,7 +39,7 @@ export function useCodeExecutor() {
         case "python":
           return executePython(code, onProgress, onLoadProgress);
         case "java":
-          return executeJava(code, onProgress, onLoadProgress, filename);
+          return executeJava(code, onProgress, onLoadProgress);
         case "c":
           return executeC(code, onProgress, onLoadProgress);
         default:

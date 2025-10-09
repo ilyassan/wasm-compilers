@@ -333,8 +333,7 @@ export default function CodeEditor() {
           }
           setLoadingProgress(progress);
           setLoadingMessage(message);
-        },
-        currentActiveTab.name
+        }
       );
       setIsLoadingRuntime(false);
       setLoadingProgress(0);
